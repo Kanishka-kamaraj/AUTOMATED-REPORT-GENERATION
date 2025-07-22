@@ -1,0 +1,80 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from fpdf import FPDF
+import os
+
+class ReportGenerator:
+    def __init__(self, data_file):
+        self.data_file = data_file
+        self.df = None
+        self.chart_path = "department_chart.png"
+
+    def read_data(self):
+        try:
+            self.df = pd.read_csv(self.data_file)
+            print("Data loaded successfully.")
+        except FileNotFoundError:
+            print(f"Error: File '{self.data_file}' not found.")
+            exit(1)
+
+    def analyze_data(self):
+        print("\nBasic Data Summary:\n")
+        print(self.df.describe(include='all'))
+
+    def create_chart(self):
+        plt.figure(figsize=(8, 5))
+        plt.bar(self.df['Department'], self.df['Monthly Budget (K)'], color='teal')
+        plt.title('Monthly Budget by Department')
+        plt.xlabel('Department')
+        plt.ylabel('Budget (K)')
+        plt.tight_layout()
+        plt.savefig(self.chart_path)
+        plt.close()
+        print(f"Chart saved to {self.chart_path}")
+
+    def generate_pdf_report(self, output_file="Department_Report.pdf"):
+        pdf = FPDF()
+        pdf.add_page()
+
+        # Title
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(0, 10, "Department Summary Report", ln=True, align="C")
+
+        pdf.ln(10)
+
+        # Table Headers
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(60, 10, "Department", border=1)
+        pdf.cell(40, 10, "Employees", border=1)
+        pdf.cell(60, 10, "Monthly Budget (K)", border=1)
+        pdf.ln()
+
+        # Table Rows
+        pdf.set_font("Arial", '', 12)
+        for _, row in self.df.iterrows():
+            pdf.cell(60, 10, row['Department'], border=1)
+            pdf.cell(40, 10, str(row['Employees']), border=1)
+            pdf.cell(60, 10, str(row['Monthly Budget (K)']), border=1)
+            pdf.ln()
+
+        # Add chart
+        pdf.ln(10)
+        pdf.image(self.chart_path, x=30, w=150)
+
+        # Save PDF
+        pdf.output(output_file)
+        print(f"Report generated: {output_file}")
+
+        # Clean up chart image
+        if os.path.exists(self.chart_path):
+            os.remove(self.chart_path)
+
+def main():
+    report = ReportGenerator("data.csv")
+    report.read_data()
+    report.analyze_data()
+    report.create_chart()
+    report.generate_pdf_report()
+
+if __name__ == "__main__":
+    main()
